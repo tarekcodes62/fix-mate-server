@@ -1,5 +1,8 @@
 import express from 'express';
-import { createCheckoutSession } from '../controllers/paymentController.js';
+import {
+  createCheckoutSession,
+  verifyPayment,
+} from '../controllers/paymentController.js';
 import verifyToken from '../middleware/verifyToken.js';
 import { verifyCustomer } from '../middleware/verifyRole.js';
 
@@ -11,5 +14,7 @@ router.post(
   verifyCustomer,
   createCheckoutSession,
 );
+
+router.get('/verify-session', verifyToken, verifyCustomer, verifyPayment);
 
 export default router;

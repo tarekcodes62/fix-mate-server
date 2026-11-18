@@ -10,6 +10,16 @@ export async function connectToMongoDB() {
 
     db = client.db(process.env.DB_NAME);
 
+    // Prevent duplicate payments for a booking
+    await db
+      .collection('payments')
+      .createIndex({ bookingId: 1 }, { unique: true });
+
+    // Prevent duplicate Stripe sessions
+    await db
+      .collection('payments')
+      .createIndex({ stripeSessionId: 1 }, { unique: true });
+
     console.log('You successfully connected to MongoDB!');
 
     return client;

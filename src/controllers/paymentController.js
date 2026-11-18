@@ -93,3 +93,131 @@ export const createCheckoutSession = async (req, res) => {
     });
   }
 };
+
+export const verifyPayment = async (req, res) => {
+  try {
+    const { session_id } = req.query;
+
+    if (!session_id) {
+      return res.status(400).send({
+        success: false,
+        message: 'Session ID is required',
+      });
+    }
+
+    // Retrieve Stripe session
+    const session = await stripe.checkout.sessions.retrieve(session_id);
+
+    // Verify payment status
+    if (session.payment_status !== 'paid') {
+      return res.status(400).send({
+        success: false,
+        message: 'Payment is not completed',
+      });
+    }
+
+    const bookingId = session.metadata?.bookingId;
+
+    if (!ObjectId.isValid(bookingId)) {
+      return res.status(400).send({
+        success: false,
+        message: 'Invalid booking ID',
+      });
+    }
+
+    // Find booking
+    const booking = await bookingsCollection().findOne({
+      _id: new ObjectId(bookingId),
+      customerEmail: req.user.email,
+    });
+
+    if (!booking) {
+      return res.status(404).send({
+        success: false,
+        message: 'Booking not found',
+      });
+    }
+
+    // Verify booking status
+    if (booking.status !== 'completed') {
+      return res.status(400).send({
+        success: false,
+        message: 'Booking is not completed',
+      });
+    }
+
+    // Verify payment amount
+    const expectedAmount = Math.round(booking.finalAmount * 100);
+
+    if (session.amount_total !== expectedAmount || session.currency !== 'usd') {
+      return res.status(400).send({
+        success: false,
+        message: 'Payment amount verification failed',
+      });
+    }
+
+    // Check existing payment
+    const paymentsCollection = getDB().collection('payments');
+
+    const existingPayment = await paymentsCollection.findOne({
+      bookingId: booking._id.toString(),
+    });
+
+    if (existingPayment) {
+      return res.send({
+        success: true,
+        message: 'Payment already verified',
+        payment: existingPayment,
+      });
+    }
+
+    // Save payment
+    const paymentData = {
+      bookingId: booking._id.toString(),
+      serviceTitle: booking.serviceTitle,
+      customerName: booking.customerName,
+      customerEmail: booking.customerEmail,
+      technicianName: booking.technicianName,
+      technicianEmail: booking.technicianEmail,
+      amount: booking.finalAmount,
+      currency: 'usd',
+      transactionId: String(session.payment_intent),
+      stripeSessionId: session.id,
+      paymentStatus: 'paid',
+      paidAt: new Date(),
+    };
+
+    const result = await paymentsCollection.insertOne(paymentData);
+
+    // Update booking payment status
+    await bookingsCollection().updateOne(
+      {
+        _id: booking._id,
+        customerEmail: req.user.email,
+        paymentStatus: 'unpaid',
+      },
+      {
+        $set: {
+          paymentStatus: 'paid',
+          updatedAt: new Date(),
+        },
+      },
+    );
+
+    res.send({
+      success: true,
+      message: 'Payment verified successfully',
+      payment: {
+        ...paymentData,
+        _id: result.insertedId,
+      },
+    });
+  } catch (error) {
+    console.error('Payment verification error:', error);
+
+    res.status(500).send({
+      success: false,
+      message: 'Failed to verify payment',
+    });
+  }
+};
