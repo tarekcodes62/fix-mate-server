@@ -197,3 +197,41 @@ export const getAllServices = async (req, res) => {
     });
   }
 };
+
+// get all bookings
+export const getAllBookings = async (req, res) => {
+  try {
+    const bookingsCollection = getDB().collection('bookings');
+
+    const { status, paymentStatus } = req.query;
+
+    const query = {};
+
+    // Filter by booking status
+    if (status) {
+      query.status = status;
+    }
+
+    // Filter by payment status
+    if (paymentStatus) {
+      query.paymentStatus = paymentStatus;
+    }
+
+    const bookings = await bookingsCollection
+      .find(query)
+      .sort({ createdAt: -1 })
+      .toArray();
+
+    res.send({
+      success: true,
+      bookings,
+    });
+  } catch (error) {
+    console.error('Get all bookings error:', error);
+
+    res.status(500).send({
+      success: false,
+      message: 'Failed to fetch bookings',
+    });
+  }
+};

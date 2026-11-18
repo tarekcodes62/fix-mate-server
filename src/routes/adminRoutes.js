@@ -6,6 +6,7 @@ import {
   updateUserRole,
   getAllServices,
   updateServiceApproval,
+  getAllBookings,
 } from '../controllers/adminController.js';
 
 import verifyToken from '../middleware/verifyToken.js';
@@ -26,5 +27,7 @@ router.patch(
   verifyAdmin,
   updateServiceApproval,
 );
+
+router.get('/bookings', verifyToken, verifyAdmin, getAllBookings);
 
 export default router;
