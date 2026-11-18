@@ -53,3 +53,114 @@ export const updateServiceApproval = async (req, res) => {
     });
   }
 };
+
+// All trangections payment
+export const getAllTransactions = async (req, res) => {
+  try {
+    const paymentsCollection = getDB().collection('payments');
+
+    const transactions = await paymentsCollection
+      .find()
+      .sort({ paidAt: -1 })
+      .toArray();
+
+    res.send({
+      success: true,
+      transactions,
+    });
+  } catch (error) {
+    console.error('Get transactions error:', error);
+
+    res.status(500).send({
+      success: false,
+      message: 'Failed to fetch transactions',
+    });
+  }
+};
+
+// get all users
+export const getAllUsers = async (req, res) => {
+  try {
+    const usersCollection = getDB().collection('user');
+
+    const users = await usersCollection
+      .find()
+      .sort({ createdAt: -1 })
+      .toArray();
+
+    res.send({
+      success: true,
+      users,
+    });
+  } catch (error) {
+    console.error('Get users error:', error);
+
+    res.status(500).send({
+      success: false,
+      message: 'Failed to fetch users',
+    });
+  }
+};
+
+// update user role
+export const updateUserRole = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { role } = req.body;
+
+    const allowedRoles = ['customer', 'technician', 'admin'];
+
+    // Validate role
+    if (!allowedRoles.includes(role)) {
+      return res.status(400).send({
+        success: false,
+        message: 'Invalid role',
+      });
+    }
+
+    const usersCollection = getDB().collection('user');
+
+    // Find user
+    const user = await usersCollection.findOne({
+      _id: id,
+    });
+
+    if (!user) {
+      return res.status(404).send({
+        success: false,
+        message: 'User not found',
+      });
+    }
+
+    // Prevent changing own role
+    if (user.email === req.user.email) {
+      return res.status(403).send({
+        success: false,
+        message: 'You cannot change your own role',
+      });
+    }
+
+    // Update role
+    await usersCollection.updateOne(
+      { _id: user._id },
+      {
+        $set: {
+          role,
+          updatedAt: new Date(),
+        },
+      },
+    );
+
+    res.send({
+      success: true,
+      message: 'User role updated successfully',
+    });
+  } catch (error) {
+    console.error('Update user role error:', error);
+
+    res.status(500).send({
+      success: false,
+      message: 'Failed to update user role',
+    });
+  }
+};

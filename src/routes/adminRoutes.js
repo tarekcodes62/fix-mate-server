@@ -1,6 +1,11 @@
 import express from 'express';
 
-import { updateServiceApproval } from '../controllers/adminController.js';
+import {
+  updateServiceApproval,
+  getAllTransactions,
+  getAllUsers,
+  updateUserRole,
+} from '../controllers/adminController.js';
 
 import verifyToken from '../middleware/verifyToken.js';
 import { verifyAdmin } from '../middleware/verifyRole.js';
@@ -13,5 +18,10 @@ router.patch(
   verifyAdmin,
   updateServiceApproval,
 );
+
+router.get('/transactions', verifyToken, verifyAdmin, getAllTransactions);
+router.get('/users', verifyToken, verifyAdmin, getAllUsers);
+
+router.patch('/users/:id/role', verifyToken, verifyAdmin, updateUserRole);
 
 export default router;
