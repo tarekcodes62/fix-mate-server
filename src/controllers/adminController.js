@@ -164,3 +164,36 @@ export const updateUserRole = async (req, res) => {
     });
   }
 };
+
+// get all services
+export const getAllServices = async (req, res) => {
+  try {
+    const servicesCollection = getDB().collection('services');
+
+    const { approvalStatus } = req.query;
+
+    const query = {};
+
+    // Filter by approval status
+    if (approvalStatus) {
+      query.approvalStatus = approvalStatus;
+    }
+
+    const services = await servicesCollection
+      .find(query)
+      .sort({ createdAt: -1 })
+      .toArray();
+
+    res.send({
+      success: true,
+      services,
+    });
+  } catch (error) {
+    console.error('Get all services error:', error);
+
+    res.status(500).send({
+      success: false,
+      message: 'Failed to fetch services',
+    });
+  }
+};
