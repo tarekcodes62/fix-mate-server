@@ -9,7 +9,6 @@ import {
 } from '../controllers/bookingController.js';
 
 import verifyToken from '../middleware/verifyToken.js';
-import { verifyCustomer } from '../middleware/verifyRole.js';
 import { verifyCustomer, verifyTechnician } from '../middleware/verifyRole.js';
 
 const router = express.Router();
