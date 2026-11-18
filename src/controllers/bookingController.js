@@ -140,3 +140,74 @@ export const createBooking = async (req, res) => {
     });
   }
 };
+
+// Get customer's own bookings
+export const getMyBookings = async (req, res) => {
+  try {
+    const bookings = await bookingsCollection()
+      .find({
+        customerEmail: req.user.email,
+      })
+      .sort({ createdAt: -1 })
+      .toArray();
+
+    res.status(200).json({
+      success: true,
+      data: bookings,
+    });
+  } catch (error) {
+    console.error('Get my bookings error:', error);
+
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch bookings',
+    });
+  }
+};
+
+// Cancel booking
+export const cancelBooking = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!ObjectId.isValid(id)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid booking ID',
+      });
+    }
+
+    const result = await bookingsCollection().updateOne(
+      {
+        _id: new ObjectId(id),
+        customerEmail: req.user.email,
+        status: 'requested',
+      },
+      {
+        $set: {
+          status: 'cancelled',
+          updatedAt: new Date(),
+        },
+      },
+    );
+
+    if (result.matchedCount === 0) {
+      return res.status(404).json({
+        success: false,
+        message: 'Booking not found or cannot be cancelled',
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Booking cancelled successfully',
+    });
+  } catch (error) {
+    console.error('Cancel booking error:', error);
+
+    res.status(500).json({
+      success: false,
+      message: 'Failed to cancel booking',
+    });
+  }
+};
