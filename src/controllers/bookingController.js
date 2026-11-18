@@ -211,3 +211,132 @@ export const cancelBooking = async (req, res) => {
     });
   }
 };
+
+// Get technician's assigned bookings
+export const getTechnicianBookings = async (req, res) => {
+  try {
+    const bookings = await bookingsCollection()
+      .find({
+        technicianEmail: req.user.email,
+      })
+      .sort({ createdAt: -1 })
+      .toArray();
+
+    res.status(200).json({
+      success: true,
+      data: bookings,
+    });
+  } catch (error) {
+    console.error('Get technician bookings error:', error);
+
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch technician bookings',
+    });
+  }
+};
+
+// Update booking status
+export const updateBookingStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status, finalAmount } = req.body;
+
+    if (!ObjectId.isValid(id)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid booking ID',
+      });
+    }
+
+    const allowedStatuses = [
+      'accepted',
+      'rejected',
+      'in-progress',
+      'completed',
+    ];
+
+    if (!allowedStatuses.includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid booking status',
+      });
+    }
+
+    // Find booking owned by technician
+    const booking = await bookingsCollection().findOne({
+      _id: new ObjectId(id),
+      technicianEmail: req.user.email,
+    });
+
+    if (!booking) {
+      return res.status(404).json({
+        success: false,
+        message: 'Booking not found',
+      });
+    }
+
+    // Validate status transition
+    const allowedTransitions = {
+      requested: ['accepted', 'rejected'],
+      accepted: ['in-progress'],
+      'in-progress': ['completed'],
+    };
+
+    if (!allowedTransitions[booking.status]?.includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message: `Cannot change status from ${booking.status} to ${status}`,
+      });
+    }
+
+    const updateData = {
+      status,
+      updatedAt: new Date(),
+    };
+
+    // Final amount required when completing booking
+    if (status === 'completed') {
+      const amount = Number(finalAmount);
+
+      if (!Number.isFinite(amount) || amount <= 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'Final amount must be greater than zero',
+        });
+      }
+
+      updateData.finalAmount = amount;
+    }
+
+    const result = await bookingsCollection().updateOne(
+      {
+        _id: new ObjectId(id),
+        technicianEmail: req.user.email,
+        status: booking.status,
+      },
+      {
+        $set: updateData,
+      },
+    );
+
+    if (result.modifiedCount === 0) {
+      return res.status(409).json({
+        success: false,
+        message: 'Booking status has already changed',
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: `Booking ${status} successfully`,
+    });
+  } catch (error) {
+    console.error('Update booking status error:', error);
+
+    res.status(500).json({
+      success: false,
+      message: 'Failed to update booking status',
+    });
+  }
+};
