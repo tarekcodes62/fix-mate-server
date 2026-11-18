@@ -221,3 +221,29 @@ export const verifyPayment = async (req, res) => {
     });
   }
 };
+
+// get payments api
+export const getMyPayments = async (req, res) => {
+  try {
+    const paymentsCollection = getDB().collection('payments');
+
+    const payments = await paymentsCollection
+      .find({
+        customerEmail: req.user.email,
+      })
+      .sort({ paidAt: -1 })
+      .toArray();
+
+    res.send({
+      success: true,
+      payments,
+    });
+  } catch (error) {
+    console.error('Get payments error:', error);
+
+    res.status(500).send({
+      success: false,
+      message: 'Failed to fetch payment history',
+    });
+  }
+};
