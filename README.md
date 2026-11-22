@@ -6,7 +6,7 @@ repair requests, user management, and secure payments.
 
 ## 🌐 Live API URL
 
-**Backend URL:** YOUR_BACKEND_LIVE_URL
+**Backend URL:** https://fix-mate-server-pi.vercel.app
 
 ## 🔐 Admin Credentials
 
