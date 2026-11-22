@@ -100,6 +100,44 @@ export const getServiceById = async (req, res) => {
   }
 };
 
+// Get single service for technician editing
+export const getMyServiceById = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (!ObjectId.isValid(id)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid service ID',
+      });
+    }
+
+    const service = await servicesCollection().findOne({
+      _id: new ObjectId(id),
+      technicianEmail: req.user.email,
+    });
+
+    if (!service) {
+      return res.status(404).json({
+        success: false,
+        message: 'Service not found',
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: service,
+    });
+  } catch (error) {
+    console.error('Get my service error:', error);
+
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch service',
+    });
+  }
+};
+
 // Create a new service
 export const createService = async (req, res) => {
   try {

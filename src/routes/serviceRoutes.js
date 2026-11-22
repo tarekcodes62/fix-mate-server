@@ -3,6 +3,7 @@ import express from 'express';
 import {
   getServices,
   getServiceById,
+  getMyServiceById,
   createService,
   updateService,
   deleteService,
@@ -34,6 +35,7 @@ router.patch(
 
 router.delete('/:id', verifyToken, verifyTechnician, deleteService);
 
+router.get('/my-services/:id', verifyToken, verifyTechnician, getMyServiceById);
 // Keep this route after specific routes
 router.get('/:id', getServiceById);
 

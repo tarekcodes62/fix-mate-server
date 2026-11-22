@@ -110,7 +110,6 @@ export const updateUserRole = async (req, res) => {
 
     const allowedRoles = ['customer', 'technician', 'admin'];
 
-    // Validate role
     if (!allowedRoles.includes(role)) {
       return res.status(400).send({
         success: false,
@@ -120,10 +119,16 @@ export const updateUserRole = async (req, res) => {
 
     const usersCollection = getDB().collection('user');
 
-    // Find user
-    const user = await usersCollection.findOne({
-      _id: id,
-    });
+    // Find user by MongoDB _id or Better Auth id
+    const query = {
+      $or: [{ _id: id }, { id: id }],
+    };
+
+    if (ObjectId.isValid(id)) {
+      query.$or.push({ _id: new ObjectId(id) });
+    }
+
+    const user = await usersCollection.findOne(query);
 
     if (!user) {
       return res.status(404).send({
@@ -140,7 +145,6 @@ export const updateUserRole = async (req, res) => {
       });
     }
 
-    // Update role
     await usersCollection.updateOne(
       { _id: user._id },
       {
@@ -232,6 +236,38 @@ export const getAllBookings = async (req, res) => {
     res.status(500).send({
       success: false,
       message: 'Failed to fetch bookings',
+    });
+  }
+};
+
+// Get admin dashboard statistics
+export const getAdminStats = async (req, res) => {
+  try {
+    const usersCollection = getDB().collection('user');
+    const servicesCollection = getDB().collection('services');
+
+    const [totalUsers, totalTechnicians, pendingServices] = await Promise.all([
+      usersCollection.countDocuments(),
+      usersCollection.countDocuments({ role: 'technician' }),
+      servicesCollection.countDocuments({
+        approvalStatus: 'pending',
+      }),
+    ]);
+
+    res.status(200).json({
+      success: true,
+      stats: {
+        totalUsers,
+        totalTechnicians,
+        pendingServices,
+      },
+    });
+  } catch (error) {
+    console.error('Get admin stats error:', error);
+
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch admin statistics',
     });
   }
 };

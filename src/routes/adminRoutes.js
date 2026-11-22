@@ -1,6 +1,7 @@
 import express from 'express';
 
 import {
+  getAdminStats,
   getAllTransactions,
   getAllUsers,
   updateUserRole,
@@ -13,6 +14,8 @@ import verifyToken from '../middleware/verifyToken.js';
 import { verifyAdmin } from '../middleware/verifyRole.js';
 
 const router = express.Router();
+
+router.get('/stats', verifyToken, verifyAdmin, getAdminStats);
 
 router.get('/transactions', verifyToken, verifyAdmin, getAllTransactions);
 router.get('/users', verifyToken, verifyAdmin, getAllUsers);

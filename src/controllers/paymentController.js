@@ -44,6 +44,12 @@ export const createCheckoutSession = async (req, res) => {
         message: 'This booking has already been paid',
       });
     }
+    if (booking.paymentStatus !== 'unpaid') {
+      return res.status(400).send({
+        success: false,
+        message: 'This booking is not eligible for payment',
+      });
+    }
 
     // Validate final amount
     if (!booking.finalAmount || booking.finalAmount <= 0) {
