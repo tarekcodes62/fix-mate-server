@@ -1,10 +1,16 @@
-import 'dotenv/config';
 import app from './app.js';
 import connectToMongoDB from './config/db.js';
-const port = process.env.PORT;
 
-await connectToMongoDB();
+export default async function handler(req, res) {
+  try {
+    await connectToMongoDB();
+    return app(req, res);
+  } catch (error) {
+    console.error(error);
 
-app.listen(port, () => {
-  console.log(`Server is running at ${port}`);
-});
+    return res.status(500).json({
+      success: false,
+      message: 'Internal Server Error',
+    });
+  }
+}
